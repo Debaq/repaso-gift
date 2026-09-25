@@ -147,16 +147,60 @@
 
   // ------------------------------------------------------------------ pintar pregunta
 
+  /** Preguntas del intento aún sin responder (las "Lectura" no se responden). */
+  function pendientes() {
+    return a.ids.filter(function (id) { return !a.items[id] && tipos[id].tipo !== 'description'; });
+  }
+
+  /** Pasa a la siguiente pregunta; en la vuelta de pendientes del examen salta las ya respondidas. */
+  function avanzar() {
+    var i = a.idx + 1;
+    if (a.vuelta) while (i < a.ids.length && (a.items[a.ids[i]] || tipos[a.ids[i]].tipo === 'description')) i++;
+    a.idx = i;
+  }
+
+  function cabeceraIntento(extra) {
+    return '<div class="intento-cab"><div><strong>' + esc(M.titulo) + '</strong> <span class="chip suave">' + esc(GP.nombreModo(a.modo)) + '</span></div>' +
+      '<div class="derecha">' + (extra || '') + (a.limite ? '<span class="reloj">--:--</span>' : '') + '</div></div>';
+  }
+
+  /** Fin de la pasada en examen con preguntas saltadas: ofrecer responderlas antes de entregar. */
+  function pantallaPendientes(pend) {
+    ocupado = false;
+    app.innerHTML = cabeceraIntento() + GP.barra((a.ids.length - pend.length) / a.ids.length) +
+      '<section class="tarjeta centro pendientes">' +
+      '<h2>Te ' + (pend.length > 1 ? 'faltan ' + pend.length + ' preguntas' : 'falta 1 pregunta') + ' por responder</h2>' +
+      '<p class="muted">Las saltaste antes. Puedes responderlas ahora o entregar así (cuentan como incorrectas).</p>' +
+      '<div class="fila centro"><button class="btn grande" data-accion="pendientes">Responder pendientes</button>' +
+      '<button class="btn secundario" data-accion="entregar">Entregar ahora</button></div></section>';
+    app.querySelector('[data-accion=pendientes]').addEventListener('click', function () {
+      a.vuelta = true;
+      a.idx = a.ids.indexOf(pend[0]);
+      persistir();
+      pintar();
+    });
+    app.querySelector('[data-accion=entregar]').addEventListener('click', function () { terminar(); });
+    app.querySelector('[data-accion=pendientes]').focus({ preventScroll: true });
+    iniciarReloj();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function pintar() {
-    if (a.idx >= a.ids.length) return terminar(false);
+    if (terminado) return;
+    var examen = a.modo === 'examen';
+    if (a.idx >= a.ids.length) {
+      var pend = examen ? pendientes() : [];
+      return pend.length ? pantallaPendientes(pend) : terminar();
+    }
     ocupado = false;
     var qid = a.ids[a.idx];
     var meta = tipos[qid];
-    var feedback = a.modo !== 'examen';
+    var feedback = !examen;
     var item = a.items[qid];
     var respondida = !!item && feedback;
     var n = a.ids.length;
-    var ultimo = a.idx + 1 >= n;
+    // En examen es la última si no queda ninguna otra sin responder
+    var ultimo = examen ? !pendientes().filter(function (id) { return id !== qid; }).length : a.idx + 1 >= n;
 
     var bien = 0, calif = 0;
     Object.keys(a.items).forEach(function (k) { var f = a.items[k].f; if (f !== null && f !== undefined) { calif++; bien += f; } });
@@ -172,11 +216,9 @@
     var claseCard = respondida ? 'respondida ' + GP.clase(item.f) : '';
 
     app.innerHTML =
-      '<div class="intento-cab"><div><strong>' + esc(M.titulo) + '</strong> <span class="chip suave">' + esc(GP.nombreModo(a.modo)) + '</span></div>' +
-      '<div class="derecha">' + (feedback && calif ? '<span class="small muted">Aciertos: ' + (Math.round(bien * 10) / 10) + '/' + calif + '</span>' : '') +
-      (a.limite ? '<span class="reloj">--:--</span>' : '') + '</div></div>' +
-      GP.barra((a.idx + (respondida ? 1 : 0)) / n) +
-      '<p class="small muted">Pregunta ' + (a.idx + 1) + ' de ' + n + ' · ' + esc(meta.etq) + (meta.cat ? ' · ' + esc(meta.cat) : '') + '</p>' +
+      cabeceraIntento(feedback && calif ? '<span class="small muted">Aciertos: ' + (Math.round(bien * 10) / 10) + '/' + calif + '</span>' : '') +
+      GP.barra(examen ? (n - pendientes().length) / n : (a.idx + (respondida ? 1 : 0)) / n) +
+      '<p class="small muted">Pregunta ' + (a.idx + 1) + ' de ' + n + (a.vuelta ? ' (pendiente)' : '') + ' · ' + esc(meta.etq) + (meta.cat ? ' · ' + esc(meta.cat) : '') + '</p>' +
       '<form class="tarjeta pregunta ' + claseCard + '" id="form-pregunta" autocomplete="off" novalidate>' +
       (respondida ? (htmlRev[qid] || '') : htmlPreg[qid]) +
       '<div class="acciones-preg">' + botones +
@@ -190,6 +232,14 @@
     else { var b = form.querySelector('[data-atajo]'); if (b) b.focus({ preventScroll: true }); }
     iniciarReloj();
     if (!respondida || !mostrarRetro(form)) window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Lector de pantalla: anunciar el resultado, ya que la pregunta se redibuja entera
+    var veredicto = respondida && form.querySelector('.retro > strong');
+    anunciar(veredicto ? veredicto.textContent : '');
+  }
+
+  function anunciar(txt) {
+    var el = document.getElementById('anuncio');
+    if (el) el.textContent = txt;
   }
 
   /**
@@ -241,7 +291,7 @@
       return;
     }
     if (accion === 'siguiente' || accion === 'saltar') {
-      a.idx++;
+      avanzar();
       persistir();
       return pintar();
     }
@@ -259,7 +309,7 @@
       if (terminado) return;
       a.items[qid] = { r: r, f: res.fraccion };
       htmlRev[qid] = res.html;
-      if (a.modo === 'examen') a.idx++;
+      if (a.modo === 'examen') avanzar();
       persistir(function () { GP.registrarRespuesta(d, M.id, qid, res.fraccion); });
       pintar();
     }).catch(errorRed);
@@ -343,7 +393,6 @@
       '<div class="fila entre"><h2>Revisión</h2><label class="check small"><input type="checkbox" id="solo-malas"> Ver solo las incorrectas</label></div>' +
       '<div id="revision"><p class="muted">Cargando corrección…</p></div>';
 
-    nuevos.forEach(function (l, i) { setTimeout(function () { GP.toast(l.icono + ' Logro desbloqueado: <strong>' + esc(l.nombre) + '</strong>', 'logro', true); }, 400 * i); });
 
     var cont = document.getElementById('revision');
     if (!intento.items) { cont.innerHTML = '<p class="muted">El detalle de este intento ya no está guardado (solo se conservan los últimos).</p>'; return; }

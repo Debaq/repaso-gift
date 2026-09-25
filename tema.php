@@ -6,13 +6,13 @@ if ($tid) {
     $tema = obtener_tema($tid);
     if (!$tema || !$tema['visible']) redirigir('index.php');
     $st = db()->prepare("SELECT id, titulo, descripcion, version,
-            (SELECT COUNT(*) FROM preguntas p WHERE p.set_id = s.id) AS n_preg
+            (SELECT COUNT(*) FROM preguntas p WHERE p.set_id = s.id AND p.tipo <> 'description') AS n_preg
         FROM sets s WHERE tema_id = ? AND visible = 1 ORDER BY orden, titulo COLLATE NOCASE");
     $st->execute([$tid]);
 } else {
     $tema = ['nombre' => 'Otros', 'descripcion' => ''];
     $st = db()->query("SELECT id, titulo, descripcion, version,
-            (SELECT COUNT(*) FROM preguntas p WHERE p.set_id = s.id) AS n_preg
+            (SELECT COUNT(*) FROM preguntas p WHERE p.set_id = s.id AND p.tipo <> 'description') AS n_preg
         FROM sets s WHERE tema_id IS NULL AND visible = 1 ORDER BY orden, titulo COLLATE NOCASE");
 }
 $sets = $st->fetchAll();

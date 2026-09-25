@@ -27,4 +27,5 @@ cabecera($set['titulo'], 'temas', 'publico', ['practica.js']);
   <p class="muted centro">Cargando…</p>
   <noscript><p class="flash error">Esta página necesita JavaScript activado.</p></noscript>
 </div>
+<div id="anuncio" class="sr" aria-live="polite"></div>
 <?php pie();

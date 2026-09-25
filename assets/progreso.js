@@ -115,7 +115,8 @@
   /** Guarda el intento terminado y devuelve los logros nuevos. */
   function registrarIntento(d, setId, intento, idsCalificables) {
     var s = d.sets[setId];
-    var previos = s.intentos.filter(function (i) { return i.maximo > 0; });
+    // Solo se compara con intentos del mismo modo y de tamaño similar (un repaso de 3 errores no cuenta)
+    var previos = s.intentos.filter(function (i) { return i.maximo >= 5 && i.modo === intento.modo; });
     var mejorPrevio = previos.length ? Math.max.apply(null, previos.map(function (i) { return i.puntaje / i.maximo; })) : null;
     s.intentos.unshift(intento);
     s.intentos = s.intentos.slice(0, MAX_INTENTOS);
@@ -141,8 +142,8 @@
       ok: function (d, c) { return c && c.intento.modo === 'examen' && c.intento.limite > 0 && c.intento.maximo >= 5 && c.intento.puntaje / c.intento.maximo >= 0.8; } },
     { id: 'aprender_errores', icono: '🔁', nombre: 'Aprender de los errores', desc: '100 % en un repaso de errores.',
       ok: function (d, c) { return c && c.intento.modo === 'errores' && c.intento.maximo >= 3 && c.intento.puntaje >= c.intento.maximo - 0.001; } },
-    { id: 'superacion', icono: '📈', nombre: 'Superación', desc: 'Mejora tu mejor puntaje anterior en un set.',
-      ok: function (d, c) { return c && c.mejorPrevio !== null && c.intento.maximo > 0 && c.intento.puntaje / c.intento.maximo > c.mejorPrevio + 0.001; } },
+    { id: 'superacion', icono: '📈', nombre: 'Superación', desc: 'Supera tu mejor puntaje en un set (mismo modo, 5 preguntas o más).',
+      ok: function (d, c) { return c && c.mejorPrevio !== null && c.intento.maximo >= 5 && c.intento.puntaje / c.intento.maximo > c.mejorPrevio + 0.001; } },
     { id: 'dominio_set', icono: '👑', nombre: 'Dominio total', desc: 'Domina todas las preguntas de un set.',
       ok: function (d, c) { if (!c || !c.ids || !c.ids.length) return false; var k = conteo(d.sets[c.set], c.ids); return k.dominadas === k.total; } },
     { id: 'explorador', icono: '🧭', nombre: 'Explorador', desc: 'Practica sets de 3 temas distintos.',
@@ -208,7 +209,7 @@
     return '<div class="progreso ' + (cls || '') + '" title="' + p + '%"><div style="width:' + p + '%"></div></div>';
   }
 
-  function nombreModo(m) { return { practica: 'Práctica', examen: 'Examen', errores: 'Repaso de errores' }[m] || m; }
+  function nombreModo(m) { return { practica: 'Práctica', examen: 'Simulacro de examen', errores: 'Repaso de errores' }[m] || m; }
 
   function toast(msg, tipo, html) {
     var cont = document.getElementById('toasts');

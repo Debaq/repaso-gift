@@ -60,6 +60,9 @@ kbd { border: 1px solid var(--borde); border-bottom-width: 2px; border-radius: 4
 .muted { color: var(--suave); }
 .small { font-size: .875rem; }
 .centro { text-align: center; }
+.fila.centro { justify-content: center; }
+/* Solo para lectores de pantalla */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Barra superior */
 .barra {
@@ -101,6 +104,7 @@ kbd { border: 1px solid var(--borde); border-bottom-width: 2px; border-radius: 4
 .form { display: flex; flex-direction: column; gap: .8rem; }
 .form label { display: flex; flex-direction: column; gap: .3rem; font-weight: 500; font-size: .95rem; }
 .form label.check, label.check { flex-direction: row; align-items: center; gap: .5rem; font-weight: 400; }
+label.check:has(input:disabled) { color: var(--suave); cursor: not-allowed; opacity: .7; }
 input[type=text], input[type=password], input:not([type]), select, textarea {
   font: inherit; color: inherit; background: var(--tarjeta);
   border: 1px solid var(--borde); border-radius: 8px; padding: .55rem .7rem; width: 100%;
@@ -307,6 +311,12 @@ a.tarjeta.tema:hover { border-color: var(--primario); transform: translateY(-2px
 .toast.aviso { border-left-color: var(--parcial); }
 .toast.logro { border-left-color: #e8a400; }
 .toast.fuera { opacity: 0; transform: translateY(10px); }
+/* En el celular, arriba: abajo tapan los botones de la pregunta */
+@media (max-width: 600px) {
+  #toasts { top: 4rem; bottom: auto; left: 1rem; right: 1rem; }
+  .toast { max-width: none; }
+  .toast.fuera { transform: translateY(-10px); }
+}
 
 /* Logros */
 .logros { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .6rem; }

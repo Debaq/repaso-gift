@@ -5,7 +5,8 @@ $set = obtener_set(get_int('id'));
 if (!$set || (!$set['visible'] && !admin())) redirigir('index.php');
 $sid = (int)$set['id'];
 $preguntas = preguntas_set($sid);
-$total = count($preguntas);
+// Las "Lectura" (description) no son preguntas: no se cuentan
+$total = count(array_filter($preguntas, function ($q) { return $q['tipo'] !== 'description'; }));
 $ids = ids_calificables([$sid])[$sid];
 
 $categorias = [];
