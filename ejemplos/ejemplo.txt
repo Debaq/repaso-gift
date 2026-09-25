@@ -1,0 +1,58 @@
+// Archivo de ejemplo en formato GIFT (Moodle).
+// Las preguntas se separan con una línea en blanco. Las líneas que empiezan con // son comentarios.
+
+$CATEGORY: $course$/Geografía
+
+::Capital de Chile:: ¿Cuál es la capital de Chile? {
+  =Santiago#¡Correcto! Santiago es la capital desde 1541.
+  ~Valparaíso#Valparaíso es la sede del Congreso, no la capital.
+  ~Concepción
+  ~Valdivia
+####Santiago fue fundada por Pedro de Valdivia en 1541.
+}
+
+::Ríos:: El río más largo de Chile es el Biobío. {F#No: el más largo es el Loa (unos 440 km).#¡Bien! El más largo es el Loa (unos 440 km).}
+
+::Regiones:: ¿Cuántas regiones tiene Chile actualmente? {#16:0#Con Ñuble (2018) llegaron a 16.}
+
+::Volcanes:: El volcán {=Villarrica =Rucapillán} está junto a la ciudad de Pucón.
+
+$CATEGORY: $course$/Ciencias
+
+::Planetas rocosos:: Selecciona los planetas rocosos del sistema solar. {
+  ~%25%Mercurio
+  ~%25%Venus
+  ~%25%Tierra
+  ~%25%Marte
+  ~%-50%Júpiter#Júpiter es un gigante gaseoso.
+  ~%-50%Saturno#Saturno es un gigante gaseoso.
+}
+
+::Agua:: La fórmula química del agua es {=H2O =H₂O#Muy bien}.
+
+::Pi:: Escribe el valor de π con dos decimales. {#3.14:0.005}
+
+::Temperatura:: ¿A qué temperatura (°C) hierve el agua a nivel del mar? Se acepta cualquier valor entre 99 y 101. {#99..101}
+
+::Orgánulos:: Empareja cada orgánulo con su función. {
+  =Mitocondria -> Produce energía (ATP)
+  =Ribosoma -> Sintetiza proteínas
+  =Núcleo -> Contiene el ADN
+  =Cloroplasto -> Realiza la fotosíntesis
+}
+
+::Tierra plana:: La Tierra es plana. {FALSE#La Tierra es aproximadamente esférica.}
+
+::Código:: [markdown]¿Qué imprime este código Python?
+```
+print(2 ** 3)
+```
+{=8 ~6 ~9 ~23}
+
+::Símbolos:: En GIFT, para escribir un signo igual dentro del texto se usa \= y para las llaves \{ \}. ¿Cuánto es 2 + 2 \= ? {=4 ~5 ~22}
+
+::Fotosíntesis (desarrollo):: Explica brevemente el proceso de fotosíntesis. {
+####Guía: la planta usa luz, agua y CO₂ para producir glucosa y liberar O₂ (en los cloroplastos).
+}
+
+::Aviso:: Las siguientes preguntas son de repaso general. ¡Tómate tu tiempo!

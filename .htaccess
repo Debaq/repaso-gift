@@ -1,0 +1,8 @@
+# Apache: bloquear acceso directo a código interno y datos
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(inc|data)(/|$) - [F,L]
+  RewriteRule ^config\.php$ - [F,L]
+</IfModule>
+Options -Indexes
+AddDefaultCharset UTF-8
