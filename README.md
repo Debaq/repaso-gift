@@ -96,3 +96,7 @@ data/                   app.sqlite (se crea sola)
 - Código QR / enlace directo a un set para compartir en clases.
 - Marcar preguntas como "dudosas" y que el estudiante pueda reportar un error al docente.
 - Convertir la web en PWA para practicar sin conexión.
+
+## Licencia
+
+[MIT](LICENSE) © 2026 Nicolás Baier Quezada
