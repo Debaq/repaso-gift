@@ -41,7 +41,8 @@ cabecera('Mi progreso', 'progreso');
     usas modo incógnito o cambias de computador, no estará. Descarga una copia para llevarla a otro equipo.</p>
   <div class="fila">
     <button class="btn secundario" data-exportar>Descargar copia (.json)</button>
-    <label class="btn secundario">Cargar copia <input type="file" accept=".json,application/json" data-importar hidden></label>
+    <button type="button" class="btn secundario" data-importar-btn>Cargar copia</button>
+    <input type="file" accept=".json,application/json" data-importar hidden>
     <button class="btn peligro" data-borrar>Borrar mi progreso</button>
   </div>
 </section>

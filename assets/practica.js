@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var app, M, P, d, s, a, tipos = {}, htmlPreg = {}, htmlRev = {}, ocupado = false, reloj = null;
+  var app, M, P, d, s, a, tipos = {}, htmlPreg = {}, htmlRev = {}, ocupado = false, terminado = false, reloj = null;
   var GP = window.GP;
   var esc = GP.esc;
 
@@ -17,8 +17,7 @@
     P = new URLSearchParams(location.search);
     M.preguntas.forEach(function (p) { tipos[p.id] = p; });
 
-    d = GP.cargar();
-    s = GP.set(d, M.id, M.version, M.titulo, M.tema_id);
+    refrescar();
     GP.guardar(d);
 
     if (P.has('revisar')) {
@@ -130,7 +129,18 @@
     app.innerHTML = '<div class="tarjeta"><p>' + esc(txt) + '</p><a class="btn" href="' + esc(M.urls.set) + '">Volver al set</a></div>';
   }
 
-  function persistir() {
+  /**
+   * Relee el progreso guardado justo antes de modificarlo: si el estudiante tiene otra pestaña
+   * abierta, así no se pisa lo que esa pestaña guardó entretanto.
+   */
+  function refrescar() {
+    d = GP.cargar();
+    s = GP.set(d, M.id, M.version, M.titulo, M.tema_id);
+  }
+
+  function persistir(cambio) {
+    refrescar();
+    if (cambio) cambio();
     s.actual = a;
     GP.guardar(d);
   }
@@ -179,7 +189,23 @@
     if (foco && (foco.type === 'text' || foco.tagName === 'TEXTAREA')) foco.focus();
     else { var b = form.querySelector('[data-atajo]'); if (b) b.focus({ preventScroll: true }); }
     iniciarReloj();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!respondida || !mostrarRetro(form)) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /**
+   * Tras comprobar, deja a la vista la retroalimentación y el botón "Siguiente"
+   * (en pantallas chicas quedan bajo el borde). Si no caben ambos, prima el inicio de la retro.
+   */
+  function mostrarRetro(form) {
+    var retro = form.querySelector('.retro');
+    var acc = form.querySelector('.acciones-preg');
+    if (!retro || !acc) return false;
+    var cab = (document.querySelector('.barra') || {}).offsetHeight || 0;
+    var arriba = retro.getBoundingClientRect().top - cab - 12;
+    var abajo = acc.getBoundingClientRect().bottom + 12 - window.innerHeight;
+    var dy = arriba < 0 ? arriba : Math.min(Math.max(abajo, 0), arriba);
+    if (dy) window.scrollBy({ top: dy, behavior: 'smooth' });
+    return true;
   }
 
   /** Convierte el formulario en la respuesta: "x" | ["1","2"] | {"0":"2","1":"0"} | null */
@@ -229,11 +255,12 @@
     }
     ocupado = true;
     api({ accion: 'calificar', id: qid, semilla: a.semilla, r: r }).then(function (res) {
+      // El tiempo pudo acabarse mientras se corregía: el intento ya está cerrado
+      if (terminado) return;
       a.items[qid] = { r: r, f: res.fraccion };
       htmlRev[qid] = res.html;
-      GP.registrarRespuesta(d, M.id, qid, res.fraccion);
       if (a.modo === 'examen') a.idx++;
-      persistir();
+      persistir(function () { GP.registrarRespuesta(d, M.id, qid, res.fraccion); });
       pintar();
     }).catch(errorRed);
   }
@@ -263,6 +290,8 @@
   // ------------------------------------------------------------------ fin del intento
 
   function terminar() {
+    if (terminado) return;
+    terminado = true;
     if (reloj) clearInterval(reloj);
     var puntaje = 0, maximo = 0;
     a.ids.forEach(function (id) {
@@ -279,6 +308,7 @@
         return { id: id, r: it ? it.r : null, f: it ? it.f : null };
       })
     };
+    refrescar();
     var nuevos = GP.registrarIntento(d, M.id, intento, M.preguntas.filter(function (p) { return calificable(p.id); }).map(function (p) { return p.id; }));
     GP.guardar(d);
     history.replaceState(null, '', '?id=' + M.id + '&revisar=' + intento.id);
@@ -318,6 +348,10 @@
     var cont = document.getElementById('revision');
     if (!intento.items) { cont.innerHTML = '<p class="muted">El detalle de este intento ya no está guardado (solo se conservan los últimos).</p>'; return; }
     var items = intento.items.filter(function (it) { return tipos[it.id]; });
+    if (!items.length) {
+      cont.innerHTML = '<p class="muted">Las preguntas de este intento ya no están en el set (el docente lo actualizó), así que no se puede mostrar la corrección.</p>';
+      return;
+    }
     api({ accion: 'revisar', semilla: intento.semilla, items: items }).then(function (r) {
       cont.innerHTML = items.map(function (it, n) {
         var rv = r.items[it.id];

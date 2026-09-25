@@ -23,9 +23,27 @@
   function cargar() {
     try {
       var d = JSON.parse(localStorage.getItem(CLAVE));
-      if (d && d.version === 1 && d.sets) return d;
+      if (valido(d)) return normalizar(d);
     } catch (e) { /* sin acceso o JSON dañado */ }
     return vacio();
+  }
+
+  function valido(d) { return !!d && d.version === 1 && !!d.sets && typeof d.sets === 'object'; }
+
+  /** Completa campos faltantes (copias importadas o datos a medias) para que nada falle al leerlos. */
+  function normalizar(d) {
+    if (!Array.isArray(d.dias)) d.dias = [];
+    if (!d.logros || typeof d.logros !== 'object') d.logros = {};
+    d.total = +d.total || 0;
+    d.bien = +d.bien || 0;
+    Object.keys(d.sets).forEach(function (k) {
+      var s = d.sets[k];
+      if (!s || typeof s !== 'object') { delete d.sets[k]; return; }
+      if (!s.q || typeof s.q !== 'object') s.q = {};
+      if (!Array.isArray(s.intentos)) s.intentos = [];
+      if (!s.actual || !Array.isArray(s.actual.ids)) s.actual = null;
+    });
+    return d;
   }
 
   function guardar(d) {
@@ -247,7 +265,15 @@
       q('[data-n-nuevas]').forEach(function (x) { x.textContent = k.nuevas; });
       q('[data-fuente=errores]').forEach(function (x) { x.disabled = !k.errores; });
       q('[data-fuente=nuevas]').forEach(function (x) { x.disabled = !k.nuevas; });
-      if (s && s.actual) q('[data-continuar-set], [data-continuar-caja]').forEach(function (x) { x.hidden = false; });
+      if (s && s.actual) {
+        q('[data-continuar-set], [data-continuar-caja]').forEach(function (x) { x.hidden = false; });
+        // Empezar otro intento descarta el pendiente: pedir confirmación
+        var descartar = function (e) {
+          if (!window.confirm('Tienes un intento sin terminar en este set. Si empiezas uno nuevo se descartará. ¿Seguir?')) e.preventDefault();
+        };
+        q('form').forEach(function (f) { f.addEventListener('submit', descartar); });
+        q('[data-errores]').forEach(function (x) { x.addEventListener('click', descartar); });
+      }
       q('[data-errores]').forEach(function (x) { x.hidden = !k.errores; x.textContent = 'Repasar errores (' + k.errores + ')'; });
       if (s && s.intentos.length) {
         var mejor = Math.max.apply(null, s.intentos.map(function (i) { return i.maximo ? i.puntaje / i.maximo : 0; }));
@@ -344,6 +370,10 @@
       setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
     });
 
+    document.querySelector('[data-importar-btn]').addEventListener('click', function () {
+      document.querySelector('[data-importar]').click();
+    });
+
     document.querySelector('[data-importar]').addEventListener('change', function () {
       var f = this.files[0];
       if (!f) return;
@@ -351,9 +381,9 @@
       lector.onload = function () {
         try {
           var nuevo = JSON.parse(lector.result);
-          if (!nuevo || nuevo.version !== 1 || !nuevo.sets) throw new Error('formato');
+          if (!valido(nuevo)) throw new Error('formato');
           if (!window.confirm('¿Reemplazar el progreso de este navegador por el del archivo?')) return;
-          if (guardar(nuevo)) location.reload();
+          if (guardar(normalizar(nuevo))) location.reload();
         } catch (e) {
           toast('El archivo no es una copia de progreso válida.', 'error');
         }
